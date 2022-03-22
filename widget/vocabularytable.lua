@@ -10,10 +10,10 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local CloseButton = require("ui/widget/closebutton")
 local LineWidget = require("ui/widget/linewidget")
 local Button = require("ui/widget/button")
-local TextBoxWidget = require("ui/widget/textboxwidget")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 
 local VocabularyRepository = require("widget/vocabularyrepository")
+local Learn = require("widget/learn")
 
 local UIManager = require("ui/uimanager")
 local Font = require("ui/font")
@@ -398,7 +398,7 @@ function VocabularyTable:init()
             padding = Size.padding.small,
             padding_h = Screen:scaleBySize(10),
             callback = function()
-                logger.info("Learn word")
+                self:showLearn(self.items)
             end
         }
         table.insert(self.button_table, self.button_learn)
@@ -519,6 +519,14 @@ function VocabularyTable:init()
     }
 
     self[1] = self.frame
+end
+
+function VocabularyTable:showLearn(items)
+    self.learn = Learn:new {
+        items = items
+    }
+
+    UIManager:show(self.learn, "partial")
 end
 
 function VocabularyTable:setCard(index)

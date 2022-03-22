@@ -44,9 +44,11 @@ local VOCABULARY_INIT_DB_SQL = [[
     CREATE TABLE IF NOT EXISTS learning
     (
         id integer PRIMARY KEY autoincrement,
-        word TEXT NOT NULL,
-        definition TEXT NOT NULL,
+        word            TEXT NOT NULL,
+        definition      TEXT NOT NULL,
         full_definition TEXT NOT NULL,
+        total_correct   integer NOT NULL DEFAULT 0,
+        total_incorrect integer NOT NULL DEFAULT 0,
         UNIQUE (word)
     );
     CREATE TABLE IF NOT EXISTS learned
@@ -84,9 +86,27 @@ function VocabularyRepository:createDB(conn)
     conn:exec(string.format("PRAGMA user_version=%d;", DB_SCHEMA_VERSION))
 end
 
+function VocabularyRepository:getLearningByWord(word)
+    local id, w, definition, full_definition, total_correct, total_incorrect = self:rowexec("SELECT id, word, definition, full_definition, total_correct, total_incorrect FROM learning WHERE word == ?", word)
+    return {
+        id = id,
+        word = w,
+        definition = definition,
+        full_definition = full_definition,
+        total_correct = total_correct,
+        total_incorrect = total_incorrect
+    }
+end
+
 function VocabularyRepository:saveLearning(learning)
     if learning.word == nil or learning.word == "" or learning.definition == nil or learning.definition == "" then
         return
+    end
+    if learning.total_correct == nil then
+        learning.total_correct = 0
+    end
+    if learning.total_incorrect == nil then
+        learning.total_incorrect = 0
     end
     local conn = SQ3.open(DB_LOCATION)
 
@@ -94,11 +114,12 @@ function VocabularyRepository:saveLearning(learning)
 
     local stmt
     if word ~= nil then
-        stmt = conn:prepare("UPDATE learning SET definition = ?, full_definition = ? WHERE word = ?")
+        stmt = conn:prepare("UPDATE learning SET definition = ?, full_definition = ?, total_correct = ?, total_incorrect = ? WHERE word = ?")
+        stmt:reset():bind(learning.definition, learning.full_definition, learning.total_correct, learning.total_incorrect, learning.word):step()
     else
         stmt = conn:prepare("INSERT INTO learning (definition, full_definition, word) VALUES (?, ?, ?)")
+        stmt:reset():bind(learning.definition, learning.full_definition, learning.word):step()
     end
-    stmt:reset():bind(learning.definition, learning.full_definition, learning.word):step()
     stmt:close()
     conn:close()
     return learning

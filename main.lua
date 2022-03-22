@@ -106,29 +106,29 @@ function VocabularyBuilder:buildMenuItems()
     table.insert(item_table, {
         text = _("Learning") .. string.format(" (%d)", count_learning),
         callback = function()
-            local learning = VocabularyTable:new{
+            self.learning = VocabularyTable:new{
                 title = _("Learning Word")
             }
-            learning.onClose = function()
+            self.learning.onClose = function()
                 self:updateMenuItems()
-                UIManager:close(learning)
+                UIManager:close(self.learning)
             end
-            UIManager:show(learning, "partial")
+            UIManager:show(self.learning, "partial")
         end,
     })
     local count_learned = VocabularyRepository:countLearned()
     table.insert(item_table, {
         text = _("Learned") .. string.format(" (%d)", count_learned),
         callback = function()
-            local learned = VocabularyTable:new{
+            self.learned = VocabularyTable:new{
                 title = _("Learned Word"),
                 table_type = "learned",
             }
-            learned.onClose = function()
+            self.learned.onClose = function()
                 self:updateMenuItems()
-                UIManager:close(learned)
+                UIManager:close(self.learned)
             end
-            UIManager:show(learned, "partial")
+            UIManager:show(self.learned, "partial")
         end,
     })
     return item_table
