@@ -5,10 +5,13 @@ local dump = require("dump")
 local Dispatcher = require("dispatcher")  -- luacheck:ignore
 
 local Blitbuffer = require("ffi/blitbuffer")
+local ffiUtil  = require("ffi/util")
+local T = ffiUtil.template
 local Device = require("device")
 local Screen = Device.screen
 local Font = require("ui/font")
 local util  = require("util")
+local Trapper = require("ui/trapper")
 local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
 local KeyValuePage = require("ui/widget/keyvaluepage")
@@ -175,23 +178,7 @@ function VocabularyBuilder:onShowLookupHistory()
             os.date("%Y-%m-%d %H:%M:%S", value.time),
             value.word,
             callback = function()
-                -- Word had been cleaned before being added to history
-                --self.dict:onLookupWord(value.word, true)
-                local vlookup = VocabularyLookup:new {
-                    word = value.word,
-                    results = tidyMarkup(self.dict:look(value.word)),
-                    add_learning_callback = function(word, definition, full_definition)
-                        VocabularyRepository:saveLearning({
-                            word = word,
-                            definition = definition,
-                            full_definition = full_definition
-                        })
-                        UIManager:show(InfoMessage:new {
-                            text = _("Added to learning!") .. string.format("\nWord: %s\n%s", word, definition),
-                        })
-                    end
-                }
-                UIManager:show(vlookup, "partial")
+                self:onLookupWord(value.word)
             end
         })
     end
@@ -205,6 +192,33 @@ function VocabularyBuilder:onShowLookupHistory()
         UIManager:close(key_value_page)
     end
     UIManager:show(key_value_page)
+end
+
+function VocabularyBuilder:showDict(word)
+    self.dict:showLookupInfo(word, 0.5)
+    local results = self.dict:look(word)
+    self.vlookup = VocabularyLookup:new {
+        word = word,
+        results = tidyMarkup(results),
+        add_learning_callback = function(w, definition, full_definition)
+            VocabularyRepository:saveLearning({
+                word = w,
+                definition = definition,
+                full_definition = full_definition
+            })
+            UIManager:show(InfoMessage:new {
+                text = _("Added to learning!") .. string.format("\nWord: %s\n%s", w, definition),
+            })
+        end
+    }
+    self.dict:dismissLookupInfo()
+    UIManager:show(self.vlookup, "partial")
+end
+
+function VocabularyBuilder:onLookupWord(word)
+    Trapper:wrap(function()
+        self:showDict(word)
+    end)
 end
 
 return VocabularyBuilder

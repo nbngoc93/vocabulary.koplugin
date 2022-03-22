@@ -407,10 +407,6 @@ end
 function VocabularyLookup:changeDictionary(index, skip_update)
 
     if not self.results[index] or index == self.dict_index then return end
-    for k, v in pairs(self.results[index]) do
-        logger.info(k, " - ", v)
-    end
-
 
     self.dict_index = index
     self.dictionary = self.results[index].dict
