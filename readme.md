@@ -1,0 +1,1 @@
+Vocabulary Builder plugin for KOReader
