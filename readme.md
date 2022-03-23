@@ -2,7 +2,7 @@
 ## Feature
 ### Menu
 ![Alt text](screenshots/01.png "Vocabulary Builder")
-### Choose word end definition to add to learning
+### Choose word and definition add to learning
 ![Alt text](screenshots/02.png "Vocabulary Builder")
 ![Alt text](screenshots/03.png "Vocabulary Builder")
 ### Learning ui
