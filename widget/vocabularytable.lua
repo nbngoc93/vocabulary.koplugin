@@ -604,12 +604,11 @@ function VocabularyTable:setCard(index)
             end
         }
     end
-    if index == self.card.index then
-        return
+    if index ~= self.card.index then
+        self.card.word = self.items[index].word
+        self.card.definition = self.items[index].definition
+        self.card.index = index
     end
-    self.card.word = self.items[index].word
-    self.card.definition = self.items[index].definition
-    self.card.index = index
     self.card:update()
 end
 
@@ -742,7 +741,7 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
         color = Blitbuffer.COLOR_GRAY_E,
         callback = function()
             self:setCard(item_position)
-            UIManager:show(self.card, "ui")
+            UIManager:show(self.card, "partial")
         end,
         hold_callback = function()
             local buttons = {}
