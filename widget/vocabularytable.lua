@@ -24,6 +24,7 @@ local FFIUtil = require("ffi/util")
 local GestureRange = require("ui/gesturerange")
 local Device = require("device")
 local Screen = Device.screen
+local Input = Device.input
 local Geom = require("ui/geometry")
 local BD = require("ui/bidi")
 
@@ -134,6 +135,30 @@ function FlashCard:init()
             doc = "Swipe",
         }
     }
+
+    if Device:hasKeys() then
+        -- set up keyboard events
+        self.key_events.Close = { {"Back"}, doc = "close" }
+        if Device:hasFewKeys() then
+            self.key_events.Close = { {"Left"}, doc = "close" }
+        end
+        self.key_events.PgFwd = {
+            {Input.group.PgFwd}, doc = "Forward"
+        }
+        self.key_events.PgBack = {
+            {Input.group.PgBack}, doc = "BackWard"
+        }
+    end
+end
+
+function FlashCard:onPgFwd()
+    self.swipe_west_callback()
+    return true
+end
+
+function FlashCard:onPgBack()
+    self.swipe_east_callback()
+    return true
 end
 
 function FlashCard:onSwipe(_, ges)
@@ -535,6 +560,20 @@ function VocabularyTable:init()
         }
     }
 
+    if Device:hasKeys() then
+        -- set up keyboard events
+        self.key_events.Close = { {"Back"}, doc = "close" }
+        if Device:hasFewKeys() then
+            self.key_events.Close = { {"Left"}, doc = "close" }
+        end
+        self.key_events.NextPage = {
+            {Input.group.PgFwd}, doc = "goto next page"
+        }
+        self.key_events.PrevPage = {
+            {Input.group.PgBack}, doc = "goto previous page"
+        }
+    end
+
     self[1] = self.frame
 end
 
@@ -773,6 +812,16 @@ end
 
 function VocabularyTable:onClose()
     UIManager:close(self, "partial")
+    return true
+end
+
+function VocabularyTable:onNextPage()
+    self:changeToNextPage()
+    return true
+end
+
+function VocabularyTable:onPrevPage()
+    self:changeToPrevPage()
     return true
 end
 
