@@ -118,10 +118,10 @@ function VocabularyBuilder:buildMenuItems()
     })
     local count_learned = VocabularyRepository:countLearned()
     table.insert(item_table, {
-        text = _("Learned") .. string.format(" (%d)", count_learned),
+        text = _("Mastered") .. string.format(" (%d)", count_learned),
         callback = function()
             self.learned = VocabularyTable:new{
-                title = _("Learned Word"),
+                title = _("Mastered"),
                 table_type = "learned",
             }
             self.learned.onClose = function()
