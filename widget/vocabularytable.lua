@@ -757,6 +757,15 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
                         end,
                     }
                 })
+                table.insert(buttons, {
+                    {
+                        text = _("Remove Learning word"),
+                        enabled = self.table_type == LEARNING_TABLE,
+                        callback = function()
+                            self:removeLearning(item_position, item)
+                        end,
+                    }
+                })
                 dialog_title = FFIUtil.template(_("%1 - Correct: %2, Incorrect: %3"), item.word, item.total_correct, item.total_incorrect)
             else
                 table.insert(buttons, {
@@ -765,6 +774,16 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
                         enabled = self.table_type == LEARNED_TABLE,
                         callback = function()
                             self:masteredToLearning(item_position, item)
+                        end,
+                    }
+
+                })
+                table.insert(buttons, {
+                    {
+                        text = _("Remove Mastered word"),
+                        enabled = self.table_type == LEARNED_TABLE,
+                        callback = function()
+                            self:removeLearned(item_position, item)
                         end,
                     }
                 })
@@ -786,16 +805,23 @@ function VocabularyTable:mastered(item_position, item)
     self:update()
 end
 
-function VocabularyTable:masteredToLearning(item_position, item)
-    logger.info("VocabularyRepository:masteredToLearning")
-    VocabularyRepository:deleteLearnedById(item.id)
-    logger.info("Deleted Learned")
-    VocabularyRepository:saveLearning(item)
-    logger.info("Saved Learning")
+function VocabularyTable:removeLearning(item_position, item)
+    VocabularyRepository:deleteLearningById(item.id)
     table.remove(self.items, item_position)
-    logger.info("Remove items")
     self:update()
-    logger.info("Update table")
+end
+
+function VocabularyTable:masteredToLearning(item_position, item)
+    VocabularyRepository:deleteLearnedById(item.id)
+    VocabularyRepository:saveLearning(item)
+    table.remove(self.items, item_position)
+    self:update()
+end
+
+function VocabularyTable:removeLearned(item_position, item)
+    VocabularyRepository:deleteLearnedById(item.id)
+    table.remove(self.items, item_position)
+    self:update()
 end
 
 function VocabularyTable:onSwipe(_, ges_ev)
