@@ -747,13 +747,15 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
         hold_callback = function()
             local buttons = {}
             local dialog_title = FFIUtil.template(_("%1"), item.word)
+            local hold_item_dialog
             if self.table_type == LEARNING_TABLE then
                 table.insert(buttons, {
                     {
                         text = _("Mastered"),
                         enabled = self.table_type == LEARNING_TABLE,
                         callback = function()
-                            self:mastered(item_position, item)
+                            self:mastered(item)
+                            UIManager:close(hold_item_dialog)
                         end,
                     }
                 })
@@ -762,7 +764,8 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
                         text = _("Remove Learning word"),
                         enabled = self.table_type == LEARNING_TABLE,
                         callback = function()
-                            self:removeLearning(item_position, item)
+                            self:removeLearning(item)
+                            UIManager:close(hold_item_dialog)
                         end,
                     }
                 })
@@ -773,7 +776,8 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
                         text = _("Add to Learning"),
                         enabled = self.table_type == LEARNED_TABLE,
                         callback = function()
-                            self:masteredToLearning(item_position, item)
+                            self:masteredToLearning(item)
+                            UIManager:close(hold_item_dialog)
                         end,
                     }
 
@@ -783,12 +787,13 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
                         text = _("Remove Mastered word"),
                         enabled = self.table_type == LEARNED_TABLE,
                         callback = function()
-                            self:removeLearned(item_position, item)
+                            self:removeLearned(item)
+                            UIManager:close(hold_item_dialog)
                         end,
                     }
                 })
             end
-            local hold_item_dialog = ButtonDialogTitle:new{
+            hold_item_dialog = ButtonDialogTitle:new{
                 title = dialog_title,
                 title_align = "center",
                 buttons = buttons,
@@ -798,30 +803,39 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
     }
 end
 
-function VocabularyTable:mastered(item_position, item)
+function VocabularyTable:mastered(item)
     VocabularyRepository:deleteLearningById(item.id)
     VocabularyRepository:saveLearned(item)
-    table.remove(self.items, item_position)
+    self:removeItem(item)
     self:update()
 end
 
-function VocabularyTable:removeLearning(item_position, item)
+function VocabularyTable:removeLearning(item)
     VocabularyRepository:deleteLearningById(item.id)
-    table.remove(self.items, item_position)
+    self:removeItem(item)
     self:update()
 end
 
-function VocabularyTable:masteredToLearning(item_position, item)
+function VocabularyTable:masteredToLearning(item)
     VocabularyRepository:deleteLearnedById(item.id)
     VocabularyRepository:saveLearning(item)
-    table.remove(self.items, item_position)
+    self:removeItem(item)
     self:update()
 end
 
-function VocabularyTable:removeLearned(item_position, item)
+function VocabularyTable:removeLearned(item)
     VocabularyRepository:deleteLearnedById(item.id)
-    table.remove(self.items, item_position)
+    self:removeItem(item)
     self:update()
+end
+
+function VocabularyTable:removeItem(item)
+    for i = #self.items, 1, -1 do
+        if self.items[i] and item.word == self.items[i].word then
+            table.remove(self.items, i)
+            break
+        end
+    end
 end
 
 function VocabularyTable:onSwipe(_, ges_ev)
