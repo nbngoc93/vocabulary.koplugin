@@ -2,13 +2,11 @@
 local UIManager = require("ui/uimanager")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local VerticalGroup = require("ui/widget/verticalgroup")
-local HorizontalGroup = require("ui/widget/horizontalgroup")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local BottomContainer = require("ui/widget/container/bottomcontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
-local InfoMessage = require("ui/widget/infomessage")
+ScrollTextWidget.height = nil
 local GestureRange = require("ui/gesturerange")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
@@ -59,7 +57,6 @@ local Learn = InputContainer:new {
 }
 
 function Learn:init()
-
     if #self.items < 4 then
         self[1] = CenterContainer:new {
             dimen = Geom:new{
@@ -101,23 +98,17 @@ function Learn:init()
         }
     }
 
-    self.padding_question_y = WidgetContainer:new {
-        dimen = Geom:new{
-            w = Screen:scaleBySize(10),
-            h = 1,
-        }
-    }
-
     self.item_index = 1
 
     self.question_text = VerticalGroup:new {}
-    self:buildQuestionText()
-
-    local question_group = HorizontalGroup:new {
-        self.padding_question_y,
-        self.question_text,
-        self.padding_question_y,
+    local question_center_container = CenterContainer:new {
+        dimen = Geom:new{
+            w = Screen:getWidth(),
+            h = Screen:getHeight() * 1/3
+        },
+        self.question_text
     }
+    self:buildQuestionText()
 
     self.buttonA = Button:new {
         text = "Button A",
@@ -232,7 +223,7 @@ function Learn:init()
     local result_center_container = CenterContainer:new {
         dimen = Geom:new{
             w = Screen:getWidth(),
-            h = (Screen:getHeight() - padding_top_container:getSize().h - question_group:getSize().h - button_vertical_group:getSize().h - button_close:getSize().h)/2
+            h = (Screen:getHeight() - padding_top_container:getSize().h - question_center_container:getSize().h - button_vertical_group:getSize().h - button_close:getSize().h)/2
         },
         self.result_text
     }
@@ -242,7 +233,7 @@ function Learn:init()
     local next_center_container = CenterContainer:new {
         dimen = Geom:new{
             w = Screen:getWidth(),
-            h = (Screen:getHeight() - padding_top_container:getSize().h - question_group:getSize().h - button_vertical_group:getSize().h - button_close:getSize().h)/2
+            h = (Screen:getHeight() - padding_top_container:getSize().h - question_center_container:getSize().h - button_vertical_group:getSize().h - button_close:getSize().h)/2
         },
         self.button_next_container
     }
@@ -253,7 +244,7 @@ function Learn:init()
         background = Blitbuffer.COLOR_WHITE,
         VerticalGroup:new {
             padding_top_container,
-            question_group,
+            question_center_container,
             button_vertical_group,
             result_center_container,
             next_center_container,
@@ -302,14 +293,19 @@ end
 
 function Learn:buildQuestionText()
     self.question_text:clear()
-    table.insert(self.question_text, ScrollTextWidget:new {
+    local scroll_text_question = ScrollTextWidget:new {
         text = self.items[self.item_index].definition,
         face = Font:getFace("cfont", 26),
         alignment = "center",
         width = Screen:getWidth() - 2 * Screen:scaleBySize(10),
-        height = Screen:getHeight() * 1/3,
+        height = nil,
         dialog = self
-    })
+    }
+    if scroll_text_question.dimen.h > (Screen:getHeight() * 1/3) then
+        scroll_text_question.height = Screen:getHeight() * 1/3
+        scroll_text_question:init()
+    end
+    table.insert(self.question_text, scroll_text_question)
 end
 
 function Learn:buildAnswerButton()
