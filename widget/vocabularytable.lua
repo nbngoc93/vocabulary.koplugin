@@ -11,6 +11,7 @@ local CloseButton = require("ui/widget/closebutton")
 local LineWidget = require("ui/widget/linewidget")
 local Button = require("ui/widget/button")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
+local ButtonDialogTitle = require("ui/widget/buttondialogtitle")
 
 local VocabularyRepository = require("widget/vocabularyrepository")
 local Learn = require("widget/learn")
@@ -219,6 +220,7 @@ local VocabularyTableItem = InputContainer:new {
     forced_baseline = nil,
     forced_height = nil,
     callback = nil,
+    hold_callback = nil,
     background = Blitbuffer.COLOR_WHITE,
     bordersize = 0,
 }
@@ -268,14 +270,21 @@ function VocabularyTableItem:init()
     self.dimen = self.frame:getSize()
 
     if self.callback then
-        self.ges_events = {
-            Tap = {
-                GestureRange:new{
-                    ges = "tap",
-                    range = self.dimen,
-                },
-                doc = "Tap Item",
-            }
+        self.ges_events.Tap = {
+            GestureRange:new{
+                ges = "tap",
+                range = self.dimen,
+            },
+            doc = "Tap Item",
+        }
+    end
+    if self.hold_callback then
+        self.ges_events.Hold = {
+            GestureRange:new{
+                ges = "hold",
+                range = self.dimen,
+            },
+            doc = "Hold Item",
         }
     end
 
@@ -311,6 +320,12 @@ end
 function VocabularyTableItem:onTap()
     self:highlight()
     self.callback()
+    return true
+end
+
+function VocabularyTableItem:onHold()
+    self:highlight()
+    self.hold_callback()
     return true
 end
 
@@ -419,6 +434,7 @@ function VocabularyTable:init()
         bordersize = 0,
         margin = 0,
         padding = 0,
+        padding_v = Size.padding.default,
         callback = function()
             self:changeToPrevPage()
         end,
@@ -441,6 +457,7 @@ function VocabularyTable:init()
         bordersize = 0,
         margin = 0,
         padding = 0,
+        padding_v = Size.padding.default,
         callback = function()
             self:changeToNextPage()
         end,
@@ -525,6 +542,11 @@ function VocabularyTable:showLearn(items)
     self.learn = Learn:new {
         items = items
     }
+    self.learn.onClose = function()
+        UIManager:close(self.learn, "partial")
+        self:update()
+        return true
+    end
 
     UIManager:show(self.learn, "partial")
 end
@@ -571,7 +593,7 @@ end
 function VocabularyTable:update()
     self[1]:free()
 
-    self:buildItems()
+    self:buildItemsContent()
     self.page_info_text:setText(FFIUtil.template(_("Page %1 of %2"), self.page, self.total_pages))
     self.button_prev_page:enableDisable(self:isPrevPageAvailable())
     self.button_next_page:enableDisable(self:isNextPageAvailable())
@@ -579,6 +601,7 @@ function VocabularyTable:update()
     UIManager:setDirty(self, function()
         return "partial", self.dimen
     end)
+    self.need_update = nil
 end
 
 function VocabularyTable:isPrevPageAvailable()
@@ -639,12 +662,20 @@ function VocabularyTable:buildItemsContent()
 
     self.items_content:clear()
 
-    self.items = {}
-    if self.table_type == LEARNING_TABLE then
-        self.items = VocabularyRepository:findAllLearning()
-    else
-        self.items = VocabularyRepository:findAllLearned()
+    if not self.items then
+        self.items = {}
+        if self.table_type == LEARNING_TABLE then
+            self.items = VocabularyRepository:findAllLearning()
+        else
+            self.items = VocabularyRepository:findAllLearned()
+        end
     end
+    if self.table_type == LEARNING_TABLE then
+        table.sort(self.items, function(item1, item2)
+            return item1.total_incorrect - item1.total_correct > item2.total_incorrect - item2.total_correct
+        end)
+    end
+
 
     local i = (self.page - 1) * self.items_per_page + 1
     while i <= (self.page * self.items_per_page) and i <= self.total_items do
@@ -673,8 +704,59 @@ function VocabularyTable:buildVocabularyTableItem(item_position, item)
         callback = function()
             self:setCard(item_position)
             UIManager:show(self.card, "ui")
+        end,
+        hold_callback = function()
+            local buttons = {}
+            local dialog_title = FFIUtil.template(_("%1"), item.word)
+            if self.table_type == LEARNING_TABLE then
+                table.insert(buttons, {
+                    {
+                        text = _("Mastered"),
+                        enabled = self.table_type == LEARNING_TABLE,
+                        callback = function()
+                            self:mastered(item_position, item)
+                        end,
+                    }
+                })
+                dialog_title = FFIUtil.template(_("%1 - Correct: %2, Incorrect: %3"), item.word, item.total_correct, item.total_incorrect)
+            else
+                table.insert(buttons, {
+                    {
+                        text = _("Add to Learning"),
+                        enabled = self.table_type == LEARNED_TABLE,
+                        callback = function()
+                            self:masteredToLearning(item_position, item)
+                        end,
+                    }
+                })
+            end
+            local hold_item_dialog = ButtonDialogTitle:new{
+                title = dialog_title,
+                title_align = "center",
+                buttons = buttons,
+            }
+            UIManager:show(hold_item_dialog)
         end
     }
+end
+
+function VocabularyTable:mastered(item_position, item)
+    VocabularyRepository:deleteLearningById(item.id)
+    VocabularyRepository:saveLearned(item)
+    table.remove(self.items, item_position)
+    self:update()
+end
+
+function VocabularyTable:masteredToLearning(item_position, item)
+    logger.info("VocabularyRepository:masteredToLearning")
+    VocabularyRepository:deleteLearnedById(item.id)
+    logger.info("Deleted Learned")
+    VocabularyRepository:saveLearning(item)
+    logger.info("Saved Learning")
+    table.remove(self.items, item_position)
+    logger.info("Remove items")
+    self:update()
+    logger.info("Update table")
 end
 
 function VocabularyTable:onSwipe(_, ges_ev)
@@ -682,6 +764,10 @@ function VocabularyTable:onSwipe(_, ges_ev)
     if direction == "south" then
         self:onClose()
         return true
+    elseif direction == "east" then
+        self:changeToPrevPage()
+    elseif direction == "west" then
+        self:changeToNextPage()
     end
 end
 

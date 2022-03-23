@@ -360,12 +360,14 @@ function Learn:updateCorrect(item)
     local learning = VocabularyRepository:getLearningByWord(item.word)
     learning.total_correct = learning.total_correct + 1
     VocabularyRepository:saveLearning(learning)
+    item.total_correct = item.total_correct + 1
 end
 
 function Learn:updateIncorrect(item)
     local learning = VocabularyRepository:getLearningByWord(item.word)
     learning.total_incorrect = learning.total_incorrect + 1
     VocabularyRepository:saveLearning(learning)
+    item.total_incorrect = item.total_incorrect + 1
 end
 
 function Learn:pickRandomWord()

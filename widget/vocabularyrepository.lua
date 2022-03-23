@@ -125,12 +125,24 @@ function VocabularyRepository:saveLearning(learning)
     return learning
 end
 
+function VocabularyRepository:deleteLearningById(id)
+    local conn = SQ3.open(DB_LOCATION)
+    local sql_stmt = [[
+            DELETE FROM learning
+            WHERE  id = ?;
+        ]]
+    local stmt = conn:prepare(sql_stmt)
+    stmt:reset():bind(id):step()
+    stmt:close()
+    conn:close()
+end
+
 function VocabularyRepository:findAllLearning(limit, page)
     if page == nil then
         page = 1
     end
     local conn = SQ3.open(DB_LOCATION)
-    local findAllSql = "SELECT id, word, definition, full_definition FROM learning"
+    local findAllSql = "SELECT id, word, definition, full_definition, total_correct, total_incorrect FROM learning"
     if limit ~= nil then
         local offset = (page - 1) * limit
         findAllSql = findAllSql .. string.format(" LIMIT %d OFFSET %d", limit, offset)
@@ -145,6 +157,39 @@ function VocabularyRepository:countLearning()
     local count = conn:rowexec("SELECT COUNT(*) FROM learning")
     conn:close()
     return tonumber(count)
+end
+
+function VocabularyRepository:saveLearned(learned)
+    if learned.word == nil or learned.word == "" or learned.definition == nil or learned.definition == "" then
+        return
+    end
+    local conn = SQ3.open(DB_LOCATION)
+
+    local word = self:rowexec("SELECT word FROM learned WHERE word == ?", learned.word)
+
+    local stmt
+    if word ~= nil then
+        stmt = conn:prepare("UPDATE learned SET definition = ?, full_definition = ? WHERE word = ?")
+        stmt:reset():bind(learned.definition, learned.full_definition, learned.word):step()
+    else
+        stmt = conn:prepare("INSERT INTO learned (definition, full_definition, word) VALUES (?, ?, ?)")
+        stmt:reset():bind(learned.definition, learned.full_definition, learned.word):step()
+    end
+    stmt:close()
+    conn:close()
+    return learned
+end
+
+function VocabularyRepository:deleteLearnedById(id)
+    local conn = SQ3.open(DB_LOCATION)
+    local sql_stmt = [[
+            DELETE FROM learned
+            WHERE  id = ?;
+        ]]
+    local stmt = conn:prepare(sql_stmt)
+    stmt:reset():bind(id):step()
+    stmt:close()
+    conn:close()
 end
 
 function VocabularyRepository:findAllLearned(limit, page)
