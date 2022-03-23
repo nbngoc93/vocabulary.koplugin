@@ -79,7 +79,7 @@ function Learn:init()
             }
         }
         self.ges_events = {
-            Tap = {
+            TapClose = {
                 GestureRange:new{
                     ges = "tap",
                     range = Geom:new{
@@ -274,8 +274,7 @@ function Learn:update()
     end)
 end
 
-function Learn:onTap(_, ges)
-    logger.info("tap close")
+function Learn:onTapClose(_, ges)
     self:onClose()
     return true
 end
