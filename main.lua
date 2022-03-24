@@ -201,14 +201,21 @@ function VocabularyBuilder:showDict(word)
         word = word,
         results = tidyMarkup(results),
         add_learning_callback = function(w, definition, full_definition)
-            VocabularyRepository:saveLearning({
-                word = w,
-                definition = definition,
-                full_definition = full_definition
-            })
-            UIManager:show(InfoMessage:new {
-                text = _("Added to learning!") .. string.format("\nWord: %s\n%s", w, definition),
-            })
+            if definition ~= "" and definition ~= nil then
+                VocabularyRepository:saveLearning({
+                    word = w,
+                    definition = definition,
+                    full_definition = full_definition
+                })
+                UIManager:show(InfoMessage:new {
+                    text = _("Added to learning!") .. string.format("\nWord: %s\n%s", w, definition),
+                })
+            else
+                UIManager:show(InfoMessage:new {
+                    text = _("You need select the definition you want to learn (Just tap on it)"),
+                })
+            end
+
         end
     }
     self.dict:dismissLookupInfo()
