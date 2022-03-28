@@ -16,6 +16,7 @@ local UIManager = require("ui/uimanager")
 local Menu = require("ui/widget/menu")
 local KeyValuePage = require("ui/widget/keyvaluepage")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local InputDialog = require("ui/widget/inputdialog")
 
 local InfoMessage = require("ui/widget/infomessage")
 
@@ -84,6 +85,7 @@ function VocabularyBuilder:onShowMenu()
         line_color = Blitbuffer.COLOR_WHITE,
     }
     UIManager:show(self.menu)
+    return true
 end
 
 function VocabularyBuilder:buildMenuItems()
@@ -94,6 +96,12 @@ function VocabularyBuilder:buildMenuItems()
         lookup_history_table = {}
     end
     local item_table = {}
+    table.insert(item_table, {
+        text = _("Dictionary lookup"),
+        callback = function()
+            self:onShowDictionaryLookup()
+        end
+    })
     if #lookup_history_table > 0 then
         table.insert(item_table, {
             text = _("Lookup History " .. "(" .. #lookup_history_table .. ")"),
@@ -132,6 +140,37 @@ function VocabularyBuilder:buildMenuItems()
         end,
     })
     return item_table
+end
+
+function VocabularyBuilder:onShowDictionaryLookup()
+    self.dictionary_lookup_dialog = InputDialog:new{
+        title = _("Enter a word or phrase to look up"),
+        input = "",
+        input_type = "text",
+        buttons = {
+            {
+                {
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(self.dictionary_lookup_dialog)
+                    end,
+                },
+                {
+                    text = _("Search dictionary"),
+                    is_enter_default = true,
+                    callback = function()
+                        if self.dictionary_lookup_dialog:getInputText() == "" then return end
+                        UIManager:close(self.dictionary_lookup_dialog)
+                        -- Trust that input text does not need any cleaning (allows querying for "-suffix")
+                        self:showDict(self.dictionary_lookup_dialog:getInputText())
+                    end,
+                },
+            }
+        },
+    }
+    UIManager:show(self.dictionary_lookup_dialog)
+    self.dictionary_lookup_dialog:onShowKeyboard()
+    return true
 end
 
 function VocabularyBuilder:updateMenuItems()
@@ -192,6 +231,7 @@ function VocabularyBuilder:onShowLookupHistory()
         UIManager:close(key_value_page)
     end
     UIManager:show(key_value_page)
+    return true
 end
 
 function VocabularyBuilder:showDict(word)
@@ -215,7 +255,7 @@ function VocabularyBuilder:showDict(word)
                     text = _("You need select the definition you want to learn (Just tap on it)"),
                 })
             end
-
+            self:updateMenuItems()
         end
     }
     self.dict:dismissLookupInfo()
@@ -226,6 +266,7 @@ function VocabularyBuilder:onLookupWord(word)
     Trapper:wrap(function()
         self:showDict(word)
     end)
+    return true
 end
 
 return VocabularyBuilder
